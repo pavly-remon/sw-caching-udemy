@@ -1,4 +1,4 @@
-const version = '0.1.0';
+const version = '0.2.1';
 const staticCacheName = `static-${version}`;
 const dynamicCacheName = `dynamic-${version}`;
 self.addEventListener('install', function (event) {
@@ -24,24 +24,42 @@ self.addEventListener('activate', function (event) {
     return self.clients.claim();
 });
 
+// self.addEventListener('fetch', function (event) {
+//     console.log("[Service Worker] Fetching something ....", event);
+//     event.respondWith(caches.match(event.request)
+//         .then(function (response) {
+//             if (response) {
+//                 return response;
+//             } else {
+//                 return fetch(event.request)
+//                     .then((res) => {
+//                         return caches.open(dynamicCacheName).then((cache) => {
+//                             cache.put(event.request.url, res.clone());
+//                             return res;
+//                         });
+//                     })
+//                     .catch((err) => {
+//                         return caches.open(staticCacheName).then((cache) => {
+//                             return cache.match('/offline.html')
+//                         });
+//                     });
+//             }
+//         }));
+// });
+
+/* Strategy: Network with Cache Fallback */
 self.addEventListener('fetch', function (event) {
-    event.respondWith(caches.match(event.request)
-        .then(function (response) {
-            if (response) {
-                return response;
-            } else {
-                return fetch(event.request)
-                    .then((res) => {
-                        return caches.open(dynamicCacheName).then((cache) => {
-                            cache.put(event.request.url, res.clone());
-                            return res;
-                        });
-                    })
-                    .catch((err) => {
-                        return caches.open(staticCacheName).then((cache) => {
-                            return cache.match('/offline.html')
-                        });
-                    });
-            }
-        }));
+    console.log("[Service Worker] Fetching something ....", event);
+    event.respondWith(
+        fetch(event.request)
+            .then((res) => {
+                return caches.open(dynamicCacheName).then((cache) => {
+                    cache.put(event.request.url, res.clone());
+                    return res;
+                });
+            })
+            .catch((err) => {
+                return caches.match(event.request);
+            })
+    );
 });
